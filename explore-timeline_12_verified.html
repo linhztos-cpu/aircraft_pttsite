@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>事故 × 制度 雙軌時間軸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE — 8-bit／像素遊戲風格
+   ============================================================ */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #DCEEF9 0%, #EAF1EC 55%, #F3F0E6 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-weight: 700; margin: 0 0 0.6em; letter-spacing: 0.01em; }
+p { margin: 0 0 1em; }
+a { color: var(--institute); }
+a:hover { color: var(--accident); }
+img, svg { max-width: 100%; }
+button { font-family: inherit; }
+
+:root {
+  --bg: #eaf3f7;
+  --bg-panel: #F3EFE4;
+  --bg-panel-2: #FAF8F2;
+  --chart-bg: #FFFFFF;
+  --ink: #2E2B24;
+  --ink-soft: #6E6858;
+  --ink-faint: #ACA48F;
+  --accident: #D14B3F;
+  --accident-soft: #f6c3bc;
+  --institute: #2670AC;
+  --institute-soft: #b7d7ec;
+  --law: #B9862A;
+  --law-soft: #ecd7a8;
+  --gov: #34835A;
+  --gov-soft: #b9dcc6;
+  --intl: #7C55AE;
+  --intl-soft: #d6c6e8;
+  --line: #CBC2AA;
+  --line-soft: #E7E1D2;
+  --inactive: #d8d2c0;
+  --focus: #1a5276;
+  --header-h: 168px;
+  --serif: Georgia, "Noto Serif TC", "PingFang TC", serif;
+  --pixel: "Press Start 2P", "DotGothic16", monospace;
+  --pixel-cn: "DotGothic16", "Press Start 2P", monospace;
+  --pixel-border: #34312A;
+  --pixel-shadow: #1c1a15;
+  --pixel-yellow: #C98A2E;
+}
+@media (max-width: 720px) { :root { --header-h: 210px; } }
+
+/* 像素風的方角按鈕：粗邊框＋硬邊實色陰影，按下時陰影收起、按鈕位移 */
+.pixel-btn {
+  border: 3px solid var(--pixel-border);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--pixel-border);
+  transition: transform .08s steps(1), box-shadow .08s steps(1);
+}
+.pixel-btn:hover { filter: brightness(1.06); }
+.pixel-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--pixel-border); }
+@media (prefers-reduced-motion: reduce) { .pixel-btn { transition: none; } }
+
+.skip-link {
+  position: absolute; left: 8px; top: -60px;
+  background: var(--pixel-border); color: #fff;
+  padding: 10px 16px; z-index: 999;
+  font-family: var(--pixel-cn); font-size: 12px;
+  transition: top .2s ease;
+}
+.skip-link:focus { top: 8px; }
+*:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ============================================================
+   LEGEND (shared)
+   ============================================================ */
+.legend {
+  display: flex; flex-wrap: wrap; align-items:center; gap: 9px 22px;
+  font-size: 12.5px; color: var(--ink-soft);
+  padding: 11px 14px;
+  margin-top: 10px;
+  background: var(--bg-panel);
+  border: 2px solid var(--pixel-border);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--pixel-border);
+}
+.legend .grp { display:flex; align-items:center; gap: 8px 18px; flex-wrap: wrap; }
+.legend .sep { width: 2px; height: 14px; background: var(--pixel-border); margin: 0 4px; opacity: .35; }
+.legend-item { display: flex; align-items: center; gap: 7px; white-space: nowrap; letter-spacing: .01em; }
+.legend-shape-svg { width: 15px; height: 15px; flex: none; display:inline-block; overflow: visible; }
+.legend-line { width: 24px; height: 0; border-top: 3px solid var(--ink-soft); flex:none; }
+.legend-line.dashed { border-top-style: dashed; }
+.legend-line.none { border-top: 3px dotted var(--inactive); }
+.stage-sticky > .legend { flex: none; margin: 12px 0 0; }
+@media (max-width: 720px) { .legend .sep { display:none; } }
+
+/* ============================================================
+   STAGE MARKERS：純捲動觸發用的隱形間隔欄，提供捲動長度與
+   IntersectionObserver 觀察目標，不再參與版面視覺呈現
+   （視覺呈現統一收進下方的 .frame 單一畫框）。
+   ============================================================ */
+.stage-markers-track { width: 100%; }
+.stage-marker { min-height: 84vh; }
+
+/* ============================================================
+   FRAME：把標題／圖例／年份目錄／圖表全部收進同一個畫框，
+   桌機固定在視窗中央（inset fixed），隨捲動更新內容但畫框本身不動；
+   手機則還原成一般文件流（見下方 max-width:880px）。
+   ============================================================ */
+.frame {
+  position: fixed;
+  top: 22px; left: 22px; right: 22px; bottom: 22px;
+  z-index: 20;
+  background: var(--bg-panel-2);
+  border: 4px solid var(--pixel-border);
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 var(--pixel-shadow), 0 30px 70px -30px rgba(28,27,24,0.35);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.frame-header { flex: none; padding: 22px 28px 0; position: relative; }
+.frame-header h1 {
+  font-family: var(--pixel-cn);
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+  color: #fff;
+  text-shadow:
+    2px 0 0 var(--pixel-border), -2px 0 0 var(--pixel-border),
+    0 2px 0 var(--pixel-border), 0 -2px 0 var(--pixel-border),
+    2px 2px 0 var(--pixel-border), -2px -2px 0 var(--pixel-border),
+    2px -2px 0 var(--pixel-border), -2px 2px 0 var(--pixel-border);
+}
+.frame-header .kicker {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--pixel);
+  font-size: 12px; letter-spacing: 0.06em;
+  color: var(--accident); font-weight: 400; margin-bottom: 12px;
+}
+.frame-header .kicker::before {
+  content: '▶▶▶'; display:inline-block; color: var(--pixel-yellow, #e0a92e); letter-spacing: -1px;
+}
+
+.frame-body {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+  padding: 22px 30px 38px;
+}
+
+/* 圖表要撐滿右側整個欄位（寬與高都撐滿），是畫面上最大的物件；
+   SVG 本身用 preserveAspectRatio 依可用空間等比縮放到最大。 */
+.stage-viz-wrap { position: relative; min-width: 0; height: 100%; max-height: 100%; display:flex; box-sizing: border-box; }
+.stage-sticky {
+  position: relative;
+  width: 100%; min-width: 0; height: 100%; max-height: 100%; display:flex; flex-direction:column; box-sizing: border-box;
+  background: var(--chart-bg);
+  border: 3px solid var(--pixel-border);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 var(--pixel-shadow);
+  padding: 18px 22px 14px;
+}
+.stage-viz-scroll {
+  overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+  min-width: 0; flex: 1; min-height: 0; display:flex;
+}
+#stageViz { width:100%; height:100%; display:block; shape-rendering: crispEdges; }
+.stage-viz-hint { display:none; font-family: var(--pixel-cn); font-size: 11px; color: var(--ink-soft); text-align:center; margin-top: 10px; letter-spacing:.02em; }
+.track-label {
+  font-size: 13px; font-weight: 600; fill: var(--ink-soft);
+  letter-spacing: .04em;
+}
+
+/* 提示：可以向下滑動 —— 放在目錄下方，淡淡地常駐提示，不搶眼、無外匡 */
+.scroll-hint {
+  margin-top: 14px;
+  padding: 4px 2px 0;
+  color: var(--ink-faint);
+  font-family: var(--pixel-cn); font-size: 11px; letter-spacing: .02em;
+  display:flex; align-items:center; gap:7px;
+  opacity: .68;
+}
+.scroll-hint .arrow { display:inline-block; color: var(--ink-faint); animation: bob 1.6s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .scroll-hint .arrow { animation:none; } }
+@keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
+
+/* ============================================================
+   READING TOC（左側年份目錄 + 閱讀進度）
+   改用「編號徽章 + 卡片列」設計：每個年份是一列獨立的卡片，
+   正在閱讀的那一列用強調色底＋左側色條＋放大年份凸顯；
+   已讀過的列徽章打勾、淡化；尚未讀到的列維持中性樣式。
+   桌機：固定高度、可捲動的清單。手機：一般文件流中的卡片區塊。
+   ============================================================ */
+.reading-toc {
+  max-width: 250px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.reading-toc-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.reading-toc-item { position: relative; }
+.reading-toc-btn {
+  display:flex; align-items:center; gap:12px;
+  background: var(--bg-panel-2);
+  border: 2px solid var(--line-soft);
+  border-left: 5px solid transparent;
+  border-radius: 5px;
+  cursor:pointer; text-align:left;
+  padding: 9px 12px; width:100%; min-height:34px;
+  transition: background-color .3s ease, border-color .3s ease, transform .2s ease;
+}
+.reading-toc-btn:hover { border-color: var(--institute-soft); transform: translateX(1px); }
+.reading-toc-btn .num {
+  flex: none; width:26px; height:26px; display:flex; align-items:center; justify-content:center;
+  font-family: var(--pixel); font-size: 9px;
+  background: var(--chart-bg); color: var(--ink-faint);
+  border: 2px solid var(--line); border-radius: 4px;
+  transition: all .3s ease;
+}
+.reading-toc-btn .txt-wrap { min-width: 0; }
+.reading-toc-btn .yr {
+  display:block;
+  font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); font-weight: 700;
+  transition: font-size .35s cubic-bezier(.2,.7,.3,1), color .3s ease;
+}
+.reading-toc-btn .desc {
+  display:block; font-size: 10.5px; line-height: 1.4; color: var(--ink-faint);
+  margin-top: 2px; letter-spacing: .01em;
+  overflow: hidden; max-height: 0; opacity: 0;
+  transition: max-height .35s ease, opacity .3s ease, margin-top .3s ease;
+}
+/* 已讀過：徽章打勾＋淡化邊框，內容維持可讀但不搶眼 */
+.reading-toc-item.is-past .reading-toc-btn { background: var(--bg-panel-2); border-color: var(--line-soft); }
+.reading-toc-item.is-past .num {
+  background: var(--gov-soft); border-color: var(--gov); color: var(--gov); font-size: 12px;
+}
+.reading-toc-item.is-past .yr { color: var(--ink-faint); font-weight: 600; }
+/* 正在閱讀：整列強調色底、左側色條、年份放大，是清單中最醒目的一列 */
+.reading-toc-item.is-current .reading-toc-btn {
+  background: var(--accident-soft);
+  border-color: var(--accident);
+  border-left-color: var(--accident);
+  box-shadow: 2px 2px 0 var(--pixel-border);
+}
+.reading-toc-item.is-current .num {
+  background: var(--accident); border-color: var(--pixel-border); color: #fff;
+}
+.reading-toc-item.is-current .yr { font-size: 17px; color: var(--pixel-border); }
+.reading-toc-item.is-current .desc {
+  max-height: 60px; opacity: 1; margin-top: 4px; color: var(--ink-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-toc-btn, .reading-toc-btn .num, .reading-toc-btn .yr, .reading-toc-btn .desc { transition: none; }
+}
+
+@media (max-width: 880px) {
+  /* 手機版還原成一般文件流：.frame 與 .frame-body 用 display:contents
+     "溶解"，讓標題／年份目錄／捲動觸發欄／圖表都變成 .scene 的直接
+     grid 子項，用 grid-template-areas 排成「標題→目錄→（隱形欄＋圖表）」，
+     不受畫框在桌機版的 DOM 巢狀限制，也不需要調整 HTML 結構。 */
+  .scene {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    grid-template-areas:
+      "header header"
+      "toc toc"
+      "markers viz";
+  }
+  .frame { display: contents; }
+  .frame-body { display: contents; }
+
+  .frame-header {
+    grid-area: header;
+    position: sticky; top: 0; z-index: 30;
+    background: var(--bg-panel-2); box-shadow: 0 3px 0 var(--pixel-border);
+    padding: 18px 20px 14px;
+  }
+  .stage-markers-track { grid-area: markers; }
+  .stage-viz-wrap { grid-area: viz; display: block; height: auto; }
+
+  .reading-toc {
+    grid-area: toc;
+    max-width: none; max-height: none; overflow-y: visible;
+    margin: 10px 10px 18px; padding: 12px;
+    background: var(--bg-panel); border: 3px solid var(--pixel-border);
+    border-radius: 6px; box-shadow: 3px 3px 0 var(--pixel-border);
+  }
+  .reading-toc-btn { padding: 8px 10px; gap: 10px; }
+  .reading-toc-btn .num { width:22px; height:22px; font-size:8px; }
+  .reading-toc-btn .yr { font-size: 11px; }
+  .reading-toc-btn .desc { font-size: 10px; }
+  .reading-toc-item.is-current .yr { font-size: 14px; }
+  .reading-toc-item.is-current .desc { font-size: 11px; }
+  .stage-marker { min-height: 74vh; }
+  .stage-sticky {
+    position: sticky; top: calc(var(--header-h) + 8px);
+    background: var(--chart-bg); border: 3px solid var(--pixel-border);
+    border-radius: 4px; box-shadow: 4px 4px 0 var(--pixel-shadow);
+    padding: 18px 16px 14px; display: block; height: auto;
+  }
+  .stage-viz-scroll { min-width: 0; display:block; height:auto; }
+  #stageViz { width: 900px; max-width: none; height: auto; }
+  .stage-viz-hint { display:block; }
+}
+
+/* ============================================================
+   TIMELINE NODE / EDGE STYLES
+   ============================================================ */
+.tl-edge { fill:none; stroke-width:2.5; transition: opacity .5s ease, stroke .3s ease; }
+.tl-edge.level-direct { stroke: var(--institute); }
+.tl-edge.level-background { stroke: var(--institute); stroke-dasharray: 7 5; }
+.tl-edge.level-uncertain { stroke: var(--ink-faint); stroke-dasharray: 2 5; stroke-linecap: round; }
+.tl-edge.is-current-step { animation: edge-step-reveal .42s ease-out both; }
+@keyframes edge-step-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tl-node { cursor: pointer; transition: opacity .5s ease, transform .3s ease; }
+.tl-node .shape { stroke: var(--pixel-border); stroke-width: 2; transition: filter .2s ease, stroke-width .2s ease; }
+.tl-node.type-accident .shape { fill: var(--accident); }
+.tl-node.type-institution .shape { fill: var(--institute); }
+.tl-node.type-law .shape { fill: var(--law); }
+.tl-node.type-governance .shape { fill: var(--gov); }
+.tl-node.type-international .shape { fill: var(--intl); }
+.tl-node.hidden-node { opacity: 0; pointer-events: none; }
+.tl-node:hover .shape { filter: brightness(1.12); stroke-width: 3; }
+.tl-node:focus { outline: none; }
+.tl-node:focus-visible .shape { stroke: var(--focus); stroke-width: 3; }
+
+/* 節點的「隱隱發光」提示：本體不動，外圍光暈同步收縮淡出，
+   暗示這個圖示可以點擊查看詳情。 */
+.node-glow {
+  stroke: none; pointer-events: none;
+  transform-box: fill-box; transform-origin: center;
+  animation: node-glow-pulse 1.8s ease-out infinite;
+}
+.tl-node.type-accident .node-glow { fill: var(--accident); }
+.tl-node.type-institution .node-glow { fill: var(--institute); }
+.tl-node.type-law .node-glow { fill: var(--law); }
+.tl-node.type-governance .node-glow { fill: var(--gov); }
+.tl-node.type-international .node-glow { fill: var(--intl); }
+@keyframes node-glow-pulse {
+  0%   { transform: scale(2.8); opacity: 0; }
+  55%  { transform: scale(1.15); opacity: .6; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node-glow { animation: none; opacity: .28; transform: scale(1.15); }
+}
+.tl-node .node-label {
+  font-size: 12.5px; font-weight: 700; fill: var(--ink); pointer-events: none;
+  paint-order: stroke; stroke: var(--chart-bg); stroke-width: 4px; stroke-linejoin: round;
+}
+.tl-node.type-accident .node-label { fill: var(--accident); font-weight: 700; }
+.tl-year-axis line { stroke: var(--pixel-border); stroke-width: 2; }
+.tl-year-axis text { font-size: 11px; font-family: var(--pixel); fill: var(--ink-soft); letter-spacing: 0; }
+
+/* ============================================================
+   DETAIL PANEL / BOTTOM SHEET
+   ============================================================ */
+.detail-overlay {
+  position: fixed; inset: 0; background: rgba(20,20,20,0.35);
+  z-index: 60; opacity: 0; pointer-events: none; transition: opacity .3s ease;
+}
+.detail-overlay.is-open { opacity: 1; pointer-events: auto; }
+.detail-panel {
+  position: fixed; top: 12px; right: 12px; bottom: 12px;
+  width: min(420px, 92vw);
+  background: var(--bg-panel-2); border: 4px solid var(--pixel-border);
+  border-radius: 6px;
+  box-shadow: -6px 6px 0 var(--pixel-shadow);
+  z-index: 70; padding: 24px 22px 32px; overflow-y: auto;
+  transform: translateX(calc(100% + 24px)); transition: transform .35s ease;
+}
+.detail-panel.is-open { transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) { .detail-panel, .detail-overlay { transition: none; } }
+.detail-close {
+  position: absolute; top: 14px; right: 14px;
+  background: var(--bg-panel); border: 2px solid var(--pixel-border);
+  width: 40px; height: 40px; border-radius: 4px;
+  box-shadow: 2px 2px 0 var(--pixel-border);
+  font-size: 15px; cursor: pointer; line-height:1; color: var(--ink);
+}
+.detail-close:hover { color: var(--accident); }
+.detail-close:active { transform: translate(2px,2px); box-shadow: none; }
+.detail-type-tag {
+  display: inline-block; font-family: var(--pixel); font-size: 10px; font-weight: 400; letter-spacing: .02em;
+  padding: 6px 10px; border: 2px solid var(--pixel-border); border-radius: 3px; color: #fff; margin-bottom: 14px;
+  box-shadow: 2px 2px 0 var(--pixel-border);
+}
+.detail-year { font-family: var(--pixel); font-size: 11px; color: var(--ink-soft); margin-bottom: 8px; }
+.detail-panel h3 {
+  font-family: var(--pixel-cn);
+  font-weight: 400;
+  font-size: 16px; margin-bottom: 16px; line-height:1.7;
+  color: var(--ink);
+}
+.detail-section { margin-bottom: 18px; }
+.detail-section h4 {
+  font-family: var(--pixel); font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--ink-soft); margin-bottom: 8px;
+}
+.detail-section p { font-size: 14.5px; margin: 0; color: var(--ink); }
+.causal-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family: var(--pixel); font-size: 11px; font-weight: 400;
+  padding: 7px 10px; border: 2px solid var(--pixel-border); border-radius: 3px; margin-bottom: 10px;
+  box-shadow: 2px 2px 0 var(--pixel-border);
+}
+.causal-badge.level-direct { background: var(--accident-soft); color: var(--accident); }
+.causal-badge.level-background { background: var(--institute-soft); color: var(--institute); }
+.causal-badge.level-longterm { background: var(--gov-soft); color: var(--gov); }
+.causal-badge.level-uncertain { background: var(--line-soft); color: var(--ink-soft); }
+.sources-toggle {
+  background: var(--bg-panel); border:2px solid var(--pixel-border); border-radius:3px;
+  box-shadow: 2px 2px 0 var(--pixel-border);
+  padding: 10px 14px; font-family: var(--pixel-cn); font-size: 12px; cursor:pointer; color: var(--ink); min-height: 44px;
+}
+.sources-toggle:active { transform: translate(2px,2px); box-shadow: none; }
+.sources-list { margin-top: 10px; padding-left: 18px; font-size: 12.5px; color: var(--ink-soft); }
+.sources-list li { margin-bottom: 6px; }
+.sources-list[hidden] { display:none; }
+
+@media (max-width: 640px) {
+  .detail-panel {
+    left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 82vh;
+    border-radius: 8px; transform: translateY(calc(100% + 24px)); padding-top: 18px;
+    box-shadow: -4px -4px 0 var(--pixel-shadow);
+  }
+  .detail-panel.is-open { transform: translateY(0); }
+  .sheet-grabber { width: 40px; height: 4px; background: var(--pixel-border); border-radius: 2px; margin: 0 auto 14px; }
+}
+
+
+/* ============================================================
+   FULL OVERVIEW MODE：不捲動也能看見完整時間軸
+   ============================================================ */
+html, body { width: 100%; height: 100%; overflow: hidden; }
+.scene { width: 100%; height: 100vh; height: 100dvh; min-height: 0; display: block; }
+.stage-markers-track { display: none !important; }
+.frame {
+  position: relative; inset: auto;
+  width: calc(100% - 24px); height: calc(100vh - 24px); height: calc(100dvh - 24px);
+  margin: 12px; display: flex; overflow: hidden;
+}
+.frame-body {
+  width: 100%; height: 100%; min-height: 0; flex: 1;
+  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 14px; padding: 12px 14px 18px;
+}
+.reading-toc { max-width: 210px; max-height: 100%; }
+.scroll-hint {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.stage-viz-wrap { width: 100%; height: 100%; min-height: 0; display: flex; }
+.stage-sticky {
+  position: relative; top: auto; width: 100%; height: 100%; min-height: 0;
+  display: flex; padding: 14px 18px 12px;
+}
+.stage-viz-scroll {
+  width: 100%; min-width: 0; min-height: 0; flex: 1;
+  display: flex; align-items: center; overflow: hidden;
+}
+#stageViz { width: 100%; max-width: 100%; height: 100%; display: block; }
+.stage-viz-hint { display: none !important; }
+.stage-sticky > .legend { margin-top: 8px; }
+
+@media (max-width: 900px) {
+  .scene { display: block; }
+  .frame { display: flex; width: calc(100% - 12px); height: calc(100vh - 12px); height: calc(100dvh - 12px); margin: 6px; }
+  .frame-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px; padding: 8px 10px 12px;
+  }
+  .reading-toc {
+    max-width: none; max-height: none; overflow: visible;
+    margin: 0; padding: 0; border: 0; box-shadow: none; background: transparent;
+  }
+  .reading-toc-list { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .reading-toc-btn { min-height: 34px; padding: 4px; justify-content: center; gap: 0; text-align: center; }
+  .reading-toc-btn .num, .reading-toc-btn .desc { display: none !important; }
+  .reading-toc-btn .yr, .reading-toc-item.is-current .yr { font-size: clamp(8px, 1.7vw, 11px); }
+  .stage-viz-wrap { grid-area: auto; height: 100%; display: flex; }
+  .stage-sticky { position: relative; top: auto; height: 100%; display: flex; padding: 10px 12px; }
+  .stage-viz-scroll { display: flex; height: auto; overflow: hidden; }
+  #stageViz { width: 100%; max-width: 100%; height: 100%; }
+  .legend { padding: 7px 9px; gap: 6px 14px; font-size: 11px; }
+}
+
+@media (max-width: 600px) {
+  .frame-body { grid-template-rows: minmax(0, 1fr); padding: 6px; }
+  .reading-toc { display: none; }
+  .stage-sticky { padding: 8px; }
+  .legend { padding: 6px; gap: 5px 10px; font-size: 9.5px; }
+  .legend .grp { gap: 6px 10px; }
+  .legend-item { gap: 4px; }
+  .legend-shape-svg { width: 12px; height: 12px; }
+  .legend-line { width: 18px; }
+}
+
+@media (max-height: 620px) and (orientation: landscape) {
+  .frame { width: calc(100% - 8px); height: calc(100dvh - 8px); margin: 4px; }
+  .frame-body { gap: 8px; padding: 6px 8px 8px; }
+  .reading-toc { max-width: 165px; }
+  .reading-toc-btn { min-height: 30px; padding: 3px 6px; }
+  .reading-toc-btn .desc, .scroll-hint { display: none !important; }
+  .stage-sticky { padding: 6px 8px; }
+  .legend { padding: 5px 7px; font-size: 9px; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#frameBox">跳到時間軸</a>
+
+<!-- ============================================================
+     SCENE：包住捲動觸發欄與畫框的共同容器。
+     桌機：.frame 以 position:fixed 蓋在 .stage-markers-track 之上，
+           兩者不需要視覺相鄰，.scene 本身不參與排版。
+     手機：.scene 變成 grid，.frame／.frame-body 改用 display:contents
+           "溶解"成一般子項，用 grid-template-areas 還原成
+           「標題 → 年份目錄 → 隱形捲動欄＋sticky 圖表」的原始手機版面。
+     ============================================================ -->
+<div class="scene" id="sceneRoot">
+
+  <!-- 純捲動觸發用的隱形間隔欄，提供捲動長度與 IntersectionObserver 觀察目標 -->
+  <div class="stage-markers-track" id="stageMarkers">
+    <div class="stage-marker" data-step="0"></div>
+    <div class="stage-marker" data-step="1"></div>
+    <div class="stage-marker" data-step="2"></div>
+    <div class="stage-marker" data-step="3"></div>
+    <div class="stage-marker" data-step="4"></div>
+    <div class="stage-marker" data-step="5"></div>
+    <div class="stage-marker" data-step="6"></div>
+  </div>
+
+  <!-- 年份目錄、圖表與下方圖例收進同一個畫框 -->
+  <main class="frame" id="frameBox" tabindex="0" aria-label="飛安事件時間軸；可使用滑鼠滾輪、上下滑動或方向鍵切換時間點">
+    <div class="frame-body">
+      <!-- 左側：年份目錄，顯示閱讀進度 -->
+      <nav class="reading-toc" id="readingToc" aria-label="年份目錄與閱讀進度">
+        <ul class="reading-toc-list" id="readingTocList"></ul>
+        <div class="scroll-hint" id="scrollHint" aria-hidden="true">
+          <span class="arrow">↕</span> 滾輪／上下滑動切換時間點
+        </div>
+      </nav>
+
+      <!-- 右側：圖表 -->
+      <div class="stage-viz-wrap">
+        <div class="stage-sticky">
+          <div class="stage-viz-scroll">
+            <svg id="stageViz" viewBox="0 0 1180 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="事故與制度雙軌時間軸，隨頁面向下捲動依年份逐步展開；每個圖示皆可點擊查看詳細資料"></svg>
+          </div>
+          <div class="legend" id="legendMain"></div>
+          <div class="stage-viz-hint" aria-hidden="true">← 可左右滑動查看完整時間軸 →</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- ============================================================
+     DETAIL PANEL / BOTTOM SHEET
+     ============================================================ -->
+<div class="detail-overlay" id="detailOverlay"></div>
+<aside class="detail-panel" id="detailPanel" role="dialog" aria-modal="true" aria-labelledby="detailTitle" aria-hidden="true">
+  <div class="sheet-grabber" aria-hidden="true"></div>
+  <button class="detail-close" id="detailClose" aria-label="關閉詳細資料面板">✕</button>
+  <span class="detail-type-tag" id="detailTypeTag"></span>
+  <div class="detail-year" id="detailYear"></div>
+  <h3 id="detailTitle"></h3>
+  <div class="detail-section">
+    <h4>簡介</h4>
+    <p id="detailDesc"></p>
+  </div>
+  <div class="detail-section">
+    <button class="sources-toggle" id="sourcesToggle" aria-expanded="false" aria-controls="sourcesList">資料來源 ▾</button>
+    <ul class="sources-list" id="sourcesList" hidden></ul>
+  </div>
+</aside>
+
+
+<script>
+/* ============================================================
+   DATA（與主專題頁完全一致，整理自附件研究報告）
+   ============================================================ */
+const TYPE_META = {
+  accident:      { label: '重大事故',     color: '#D14B3F', shape: 'circle' },
+  institution:   { label: '調查機構',     color: '#2670AC', shape: 'square' },
+  law:           { label: '法律規章',     color: '#B9862A', shape: 'diamond' },
+  governance:    { label: '治理制度',     color: '#34835A', shape: 'hex' },
+  international: { label: '國際規範',     color: '#7C55AE', shape: 'triangle' },
+};
+
+const CAUSAL_META = {
+  direct:     { label: '直接促成', lineClass: 'level-direct' },
+  background: { label: '間接形成改革背景', lineClass: 'level-background' },
+  longterm:   { label: '長期制度或國際規範演進，無明確單一事故因果', lineClass: null },
+};
+
+/* 2026-09-03 逐項查核修訂版。 */
+const SOURCES = {
+  s1:  { t:'飛的更安全：1998–2007飛安統計（TTSB）', u:'https://www.ttsb.gov.tw/media/1128/statistics98-07.pdf' },
+  s2:  { t:'運輸事故調查法沿革－全國法規資料庫', u:'https://law.moj.gov.tw/LawClass/LawHistory.aspx?pcode=K0090057' },
+  s3:  { t:'國家民用航空安全計畫－交通部民用航空局', u:'https://www.caa.gov.tw/article.aspx?a=189&lang=1' },
+  s6:  { t:'台灣飛安統計2015–2024（TTSB）', u:'https://www.ttsb.gov.tw/media/9223/%E5%8F%B0%E7%81%A3%E9%A3%9B%E5%AE%89%E7%B5%B1%E8%A8%88%E5%A0%B1%E5%91%8A2015-2024.pdf' },
+  s7:  { t:'運輸事故調查法－全國法規資料庫', u:'https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=K0090057' },
+  s8:  { t:'EU Regulation 376/2014－EUR-Lex', u:'https://eur-lex.europa.eu/eli/reg/2014/376/oj/eng?uri=CELEX%3A32014R0376' },
+  s9:  { t:'2010飛安統計回顧（TTSB）', u:'https://www.ttsb.gov.tw/media/1268/554b3765-93c7-40a4-8675-8c6a4c78cd2a.pdf' },
+  s12: { t:'民用航空法－全國法規資料庫', u:'https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=K0090001' },
+  s14: { t:'國家運輸安全調查委員會組織法（TTSB）', u:'https://www.ttsb.gov.tw/1133/1206/25253/25260/25293/post' },
+  s19: { t:'新加坡航空SQ006事故報告（TTSB）', u:'https://www.ttsb.gov.tw/1243/16869/18650/post' },
+  s21: { t:'華航CI611事故報告（TTSB）', u:'https://www.ttsb.gov.tw/1243/16869/18664/' },
+  s23: { t:'2004年民用航空法修正－總統府', u:'https://www.president.gov.tw/Page/294/35962' },
+  s28: { t:'復興航空GE222事故報告（TTSB）', u:'https://www.ttsb.gov.tw/1243/16869/18820/post' },
+  s29: { t:'復興航空GE235事故報告（TTSB）', u:'https://www.ttsb.gov.tw/1243/16869/18828/post' },
+  s34: { t:'SMS分享實務經驗－交通部民用航空局', u:'https://www.caa.gov.tw/NewsPublish-Content.aspx?a=381&lang=1&ngid=1&nid=1909' },
+  s43: { t:'Annex 13沿革－ICAO', u:'https://www.icao.int/sites/default/files/postalhistory/annex_13_aircraft_accident_and_incident_investigation.htm' },
+  s48: { t:'Safety Management－ICAO', u:'https://www.icao.int/safety-management' },
+  s49: { t:'CI204事故檔案－國家發展委員會檔案管理局', u:'https://ahonline.drnh.gov.tw/index.php?act=Archive%2FSearch%2FeyJxdWVyeSI6W3siZmllbGQiOiJpbl9zdG9yZV9ubyIsInZhbHVlIjoiMDA3MDAwMDAwNjY2QSIsImF0dHIiOiIrIn1dfQ%3D%3D' },
+  s50: { t:'CI204事故資料－Bureau of Aircraft Accidents Archives', u:'https://www.baaa-acro.com/crash/crash-boeing-737-209-hualien-54-killed' },
+  s51: { t:'CI140名古屋事故調查－Japan Transport Safety Board', u:'https://jtsb.mlit.go.jp/jtsb/aircraft/detail.php?id=851' },
+  s52: { t:'運安會歷史沿革（TTSB）', u:'https://www.ttsb.gov.tw/1133/1178/1179/15993/' },
+  s53: { t:'1998年民用航空法修正－總統府', u:'https://www.president.gov.tw/Page/294/33937' },
+  s54: { t:'飛安會2014年報（TACARE沿革）', u:'https://www.ttsb.gov.tw/media/1320/asc103.pdf' },
+  s55: { t:'SQ006報告發布爭議－飛安會2002年5月會務報告', u:'https://www.ttsb.gov.tw/1133/1134/1137/1139/14822/' },
+  s56: { t:'CI611英文事故報告（TTSB）', u:'https://www.ttsb.gov.tw/english/16051/16113/16114/16309/post' },
+  s57: { t:'行政院通過飛航事故調查法草案（2003）', u:'https://www.ey.gov.tw/Page/4EC2394BE4EE9DD0/038e29f8-ed1d-4378-bd52-5318b2911110' },
+  s58: { t:'Annex 13：Aircraft Accident and Incident Investigation－ICAO', u:'https://store.icao.int/en/annex-13-aircraft-accident-and-incident-investigation' },
+  s59: { t:'Annex 19採納與適用日期－ICAO SARPs', u:'https://www.icao.int/safety-management/standards-and-recommended-practices-sarps' },
+  s61: { t:'GE235改善建議追蹤（TTSB）', u:'https://www.ttsb.gov.tw/1133/1154/1155/1160/20513/' },
+  s62: { t:'GE235最終調查報告（PDF）', u:'https://www.ttsb.gov.tw/media/3636/asc-aor-16-06-001-ch.pdf' },
+  s63: { t:'飛安統計報告清單（TTSB）', u:'https://www.ttsb.gov.tw/1133/1150/1151/Lpsimplelist' },
+  s64: { t:'復興航空GE791貨機事故報告（TTSB）', u:'https://www.ttsb.gov.tw/1243/16869/18674/post' },
+};
+
+const NODES = [
+  { id:'hualien1989', year:1989.82, yearLabel:'1989-10-26', type:'accident', step:0,
+    title:'華航CI204 花蓮空難', shortTitle:'CI204花蓮空難',
+    description:'華航CI204（B737-209，B-180）由花蓮飛往臺北，夜間自03跑道起飛後未依離場程序右轉，反而左轉撞上花蓮近郊山區；47名乘客與7名組員共54人全數罹難。事故屬可控飛行撞地（CFIT），當時尚無與民航監理分離的專責調查機關。',
+    importance:'具體呈現專責機關成立前的調查環境，也提醒離場程序、航路核對與CFIT防制的重要性。',
+    causal:{ level:'background', explanation:'官方沿革把本案列為專責調查機關成立前的重大事故，但沒有資料證明它直接促成1998年的機構成立。' },
+    sources:['s49','s50','s9'] },
+
+  { id:'nagoya1995', year:1994.32, yearLabel:'1994-04-26', type:'accident', step:0,
+    title:'華航CI140 名古屋空難', shortTitle:'CI140名古屋空難',
+    description:'華航CI140（A300B4-622R，B-1816）在名古屋機場ILS進場時誤觸重飛模式；自動駕駛使水平安定面持續向機頭上仰配平，組員同時壓低操縱桿，形成嚴重失配。其後重飛時大仰角失速墜毀，271人中264人死亡、7人重傷。',
+    importance:'事故凸顯自動化模式辨識、配平系統、駕駛艙協作與重飛訓練的複合風險；原檔標示「1995」不正確，已改為1994年。',
+    causal:{ level:'background', explanation:'它是專責調查機關成立前的重要背景事故，但現有官方資料未證明本案直接促成1998年的機構成立。' },
+    sources:['s51','s9'] },
+
+  { id:'ci676', year:1998.13, yearLabel:'1998-02-16', type:'accident', step:1,
+    title:'華航CI676 大園空難', shortTitle:'CI676大園空難',
+    description:'華航CI676（A300-622R，B-1814）在中正國際機場進場及下降期間高於正常航徑；重飛加大推力後約12秒未有效抑制機頭上仰，最終失速墜毀。機上182名乘客、14名組員及地面6人死亡，共202人；調查並指出正、副駕駛協調不足。設置專責調查委員會的法源已於事故前公布，因此本案是加速改革的背景，不是機構成立的原始原因。',
+    importance:'事故在專責調查機關正式運作前夕發生，迅速放大社會對獨立、技術性調查能力的需求。',
+    causal:{ level:'background', relatedIds:['asc1998'], explanation:'設立委員會的法律授權已於1998年1月21日公布，早於2月16日的CI676；本案可合理視為加速與凸顯改革必要性的背景，不能說是唯一或原始立法原因。' },
+    sources:['s1','s52','s53'] },
+
+  { id:'asc1998', year:1998.4, yearLabel:'1998-05-25', type:'institution', step:1,
+    title:'航空器飛航安全委員會成立', shortTitle:'專責飛安會成立',
+    description:'1998年1月21日《民用航空法》修正提供設置依據，3月23日發布組織規程，5月25日「航空器飛航安全委員會」正式成立；2001年5月23日改稱「行政院飛航安全委員會」。這是台灣首次設置與民航監理分離的常設飛航事故調查機構，但直到2012年才成為有組織法依據、相當中央三級的獨立機關。',
+    importance:'建立專責調查能力，但當時仍是行政組織；直到2012年才成為有組織法依據、相當中央三級的獨立機關。',
+    causal:{ level:'background', relatedIds:['ci676'], explanation:'機構的法源早於CI676事故；事故發生於籌設期間並增加盟外界要求，兩者有時間與政策關聯，但不宜標為事故直接「催生」機構。' },
+    sources:['s52','s53','s1'] },
+
+  { id:'earlySopTacare', year:1999.79, yearLabel:'1999-10起', type:'governance', step:1,
+    title:'TACARE開始運作；調查SOP與資料庫建置', shortTitle:'TACARE／SOP建置',
+    description:'TACARE飛航安全自願報告系統自1999年10月開始運作，以保密、非懲罰方式蒐集不易由強制通報取得的風險訊息；同期飛安會逐步建立事故調查SOP、飛安資料庫，以及與NTSB、AAIB等國外調查機關的合作管道。',
+    importance:'把治理範圍從事故後調查擴展至日常風險蒐集與組織學習，並為2014年自願報告入法累積實務基礎。',
+    causal:{ level:'longterm', explanation:'屬於新設機構的能力建置；官方年報已確認TACARE自1999年10月運作，因此不再以約略年份標示。' },
+    sources:['s54','s9'] },
+
+  { id:'sq006', year:2000.83, yearLabel:'2000-10-31', type:'accident', step:2,
+    title:'新加坡航空SQ006 桃園機場事故', shortTitle:'SQ006事故',
+    description:'SQ006（B747-400，9V-SPK）在颱風、低能見度與強陣風下誤入部分關閉的05R跑道起飛，撞上施工設備後起火；179人中83人死亡。調查認定組員未確認滑行路線與所在跑道，並把跑道警戒燈、停止排燈與關閉跑道標示等不足列為安全風險。飛安會於2002年4月26日發布最終報告；新加坡翌日另發分析並批評報告不完整、不平衡，飛安會則說明曾提供30日初稿與60日最終草案意見期。此案同時檢驗大型國際事故的跨國參與、異議處理與報告公信力。',
+    importance:'新設調查機關首次處理大型國際事故，同時檢驗機場施工管理、跑道入侵防制、跨國參與及報告協商能力。',
+    causal:{ level:'background', relatedIds:['lawAccidentInvestigation2004'], explanation:'本案提供重要調查實務與國際協作經驗，但立法資料沒有證明它直接塑造2004年調查法的特定條文。' },
+    sources:['s19','s55'] },
+
+  { id:'ci611', year:2002.4, yearLabel:'2002-05-25', type:'accident', step:2,
+    title:'華航CI611 澎湖外海空中解體', shortTitle:'CI611事故',
+    description:'華航CI611（B747-200，B-18255）起飛後在澎湖東北方約23海里高空解體，206名乘客與19名組員全數罹難。調查認定1980年尾擦後機身修理未依波音規範完整移除受損蒙皮、補強板也未覆蓋全部損傷，長期疲勞裂紋最終導致後機身結構破壞；維修計畫、紀錄與民航局稽核亦有缺失。報告就結構修理、持續適航、老齡機與監理稽核提出21項安全改善建議。',
+    importance:'將改革焦點由飛行操作擴至老齡機結構修理、持續適航、維修紀錄、腐蝕預防計畫及監理稽核；調查提出21項安全改善建議。',
+    causal:{ level:'background', relatedIds:['lawAccidentInvestigation2004'], explanation:'事故為同時期制度成熟的重要實務背景，但行政院立法說明未指名本案為2004年調查法的直接原因。' },
+    sources:['s21','s56'] },
+
+  { id:'ge791', year:2002.97, yearLabel:'2002-12-21', type:'accident', step:2,
+    title:'復興航空GE791 貨機澎湖外海事故', shortTitle:'GE791貨機事故',
+    description:'復興航空GE791貨機（ATR72-200，B-22708）由中正國際機場飛往澳門，在18,000呎巡航時遭遇超出FAR／JAR 25附錄C適航認證範圍的嚴重積冰，於澎湖馬公西南約17公里墜海，兩名駕駛員失蹤。組員未及時辨識嚴重積冰、改變高度或依緊急程序處置，航空器隨後失速並進入異常姿態；調查促成積冰訓練、氣象圖示、偵測警告與飛航紀錄器等改善建議。',
+    importance:'補足貨運、巡航積冰、氣象資訊與航空器認證範圍等風險類型，也是飛安會早期跨國技術調查的代表案件。',
+    causal:{ level:'longterm', explanation:'本案帶來多項積冰與訓練改善建議，但沒有資料顯示它直接觸發特定組織或法律改革。' },
+    sources:['s64'] },
+
+  { id:'lawAccidentInvestigation2004', year:2004.42, yearLabel:'2004-06-02', type:'law', step:2,
+    title:'《飛航事故調查法》與民航局權責分工', shortTitle:'調查專法／權責分工',
+    description:'《飛航事故調查法》全文38條公布施行，將調查權限、調查小組、證物與紀錄器保全、草案徵詢、報告發布及安全改善建議納入專法；法定目的在防止同類事故再發，而非處分或追究責任。同日《民用航空法》增訂第41-2條，把一般飛安事件通報、緊急應變及非屬失事或重大意外事件的調查、統計與分析交由民航局，形成監理與重大事故獨立調查的分工。專法並要求政府機關收到報告後90日內提出處理報告，由行政院列管、飛安會追蹤；1999年4月至2008年6月的392項建議或計畫中，385項已接受或完成。',
+    importance:'把1998年以來的行政調查機制提升為法律授權，形成民航局負責監理、專責機關獨立調查重大事故的制度分工。',
+    causal:{ level:'longterm', explanation:'行政院說明將立法原因概括為法制與組織不足、實務經驗及先進國家制度；未將法律歸因於某一事故。' },
+    sources:['s2','s57','s12','s23','s1'] },
+
+  { id:'icaoAnnex13', year:2003, yearLabel:'長期國際準則；首版1951', type:'international', step:2,
+    title:'ICAO Annex 13：事故調查國際準則', shortTitle:'ICAO Annex 13',
+    description:'Annex 13規範事故發生國原則上主持調查，登記國、營運國、設計國與製造國可派認可代表參與；最終報告應區分事實、分析、結論與安全建議。調查唯一目的在預防事故與事件，並非分配過失或法律責任。',
+    importance:'它是台灣調查法制、跨國參與、報告結構及「預防再發」原則的主要國際技術基準；首版於1951年採納，不是2003年新制度。',
+    causal:{ level:'longterm', explanation:'屬長期國際規範演進，時間位置只為呈現其對2000年代法制化的持續影響。' },
+    sources:['s43','s58'] },
+
+  { id:'ascOrgAct2012', year:2011.87, yearLabel:'2011-11-14公布／2012-05-20施行', type:'institution', step:3,
+    title:'飛航安全調查委員會組織法施行', shortTitle:'調查機關法制化',
+    description:'組織法於2011年11月14日公布，2012年5月20日施行；機關由「行政院飛航安全委員會」改稱「飛航安全調查委員會」，成為相當中央三級的獨立機關，設專任主任委員、副主任委員及兼任委員。',
+    importance:'調查機關由行政設置轉為具組織法依據的常設獨立機關，獨立性、人事與法定職掌獲得較穩定基礎。',
+    causal:{ level:'longterm', explanation:'屬於長期組織法制化，官方資料未指出由特定事故直接觸發。' },
+    sources:['s14','s52'] },
+
+  { id:'ssp2011', year:2011.86, yearLabel:'2011-11-10起；最新版2025-06-01', type:'governance', step:4,
+    title:'國家民用航空安全計畫（SSP）與績效式監理', shortTitle:'SSP／績效監理',
+    description:'民航局於2011年11月10日發布第一版SSP，把安全政策、風險管理、安全保證與推廣整合為國家層級框架，並以安全資料與績效指標調整監理優先順序。2019年監理重點明列跑道安全、飛行中失控（LOC-I）、可控飛行撞地（CFIT），以及疲勞與老齡航空器等風險；SSP其後於2022年6月15日、2023年11月1日及2025年6月1日更新至第5、6、7版，使風險與績效式監理成為持續修訂的制度。第一版早於2013年通過的Annex 19，其起點來自ICAO此前已發展的安全管理框架。',
+    importance:'使安全治理從事故後反應延伸至事故前的系統性風險辨識；其建立早於2013年Annex 19，源自ICAO既有安全管理框架，不能說由Annex 19或2014、2015年的事故催生。',
+    causal:{ level:'longterm', explanation:'第一版發布於2011年；Annex 19到2013年才通過，因此後者是後續統整與更新基準，不是本節點的原始原因。' },
+    sources:['s3','s34','s59'] },
+
+  { id:'icaoAnnex19', year:2013.15, yearLabel:'2013-02-25通過／11-14適用', type:'international', step:4, labelDx:-18,
+    title:'ICAO Annex 19：安全管理國際準則', shortTitle:'ICAO Annex 19',
+    description:'ICAO理事會於2013年2月25日通過Annex 19第一版，11月14日起適用；它把原散見各附件的安全管理規定集中，要求國家建立SSP、適用的服務提供者建立SMS，並以安全資料、風險管理與安全績效持續改進。台灣已於2011年發布第一版SSP，因此Annex 19主要是後續校準與修訂基準，而非台灣SSP的起點。',
+    importance:'為各國安全管理提供一致基準。台灣2011年已有SSP，Annex 19因此主要是後續校準與修訂依據，而不是台灣SSP的起點。',
+    causal:{ level:'longterm', explanation:'屬國際標準長期演進，不由單一台灣事故造成。' },
+    sources:['s48','s59'] },
+
+  { id:'euReg376', year:2014.26, yearLabel:'國際比較｜2014制定；2015-11-15適用', type:'international', step:4, labelDx:18,
+    title:'EU 376/2014：事件通報與Just Culture（國際比較）', shortTitle:'EU 376/2014〔比較〕',
+    description:'此為歐盟區域法規，對臺灣沒有法律拘束力，列入時間軸僅供制度比較。法規要求特定民航事件原則上於72小時內強制通報，也須設自願通報；報告資料進入國家資料庫並傳送歐盟中央資料庫，採共同風險分類與年度彙整檢討。身分及資料來源受保護、資料原則上不供究責，但故意違規或對明顯重大風險嚴重漠視等情形不在保護範圍。',
+    importance:'用來比較Just Culture、通報時限、資料庫交換及來源保護的法制細緻度，不代表臺灣採用或受其規範。',
+    causal:{ level:'longterm', explanation:'本節點只是國際比較，與臺灣事故或修法均不建立因果連線。' },
+    sources:['s8'] },
+
+  { id:'law2014Voluntary', year:2014.46, yearLabel:'2014-06-18', type:'law', step:4,
+    title:'《飛航事故調查法》修正：自願報告入法', shortTitle:'自願報告入法',
+    description:'新增第5-1條，明定飛安會應建立飛航安全自願報告系統，目的不在處分或追究責任，且應保護資料來源；這使已自1999年運作的TACARE取得明確法源。現行法另增「不得洩漏身分」及罰鍰規定，則是2019年多運具修法後的制度。',
+    importance:'將保密、非懲罰的安全通報從行政實務提升為法律義務，降低第一線人員回報風險資訊的顧慮。',
+    causal:{ level:'longterm', explanation:'屬TACARE運作多年後的法制化，未找到單一事故直接促成修法的證據。' },
+    sources:['s2','s54','s7'] },
+
+  { id:'ge222', year:2014.56, yearLabel:'2014-07-23', type:'accident', step:4,
+    title:'復興航空GE222 馬公事故', shortTitle:'GE222事故',
+    description:'GE222（ATR72-212A，B-22810）執行馬公20跑道VOR非精確進場，在未取得目視參考下下降至330呎最低下降高度以下，於錯失進場點附近仍低飛尋找跑道，延遲重飛後撞擊地面與住宅；58人中48人死亡、10人受傷，另有5名地面民眾受傷。調查同時指出公司長期SOP違規文化、FOQA與SMS未有效辨識風險，以及民航局未及時發現或督促改正相關缺失。',
+    importance:'除組員違反程序外，調查更指出公司長期SOP違規文化、FOQA與SMS未有效辨識風險，以及民航局未及時發現或促成改正監理缺失。',
+    causal:{ level:'background', relatedIds:['ge235Oversight2016'], explanation:'本案已揭露SMS與監理問題，構成後續強化監理的背景；2015年直接啟動全面考驗的事件則是GE235。' },
+    sources:['s28'] },
+
+  { id:'ge235', year:2015.09, yearLabel:'2015-02-04', type:'accident', step:4,
+    title:'復興航空GE235 基隆河事故', shortTitle:'GE235事故',
+    description:'GE235（ATR72-600，B-22816）二號發動機因自動順槳單元／扭力訊號間歇異常而非指令性順槳；組員未正確辨識故障，反而收回並關閉正常的一號發動機，又未及時處置失速，墜入基隆河。58人中43人死亡、14人重傷、1人輕傷，地面2人受傷。調查亦揭露故障辨識、標準程序、CRM／TEM、模擬機訓練與監理有效性的連鎖缺口。',
+    importance:'事故揭露故障辨識、標準程序、CRM／TEM、模擬機訓練及監理有效性的連鎖缺口；最終報告於2016年6月30日發布，並有法國、加拿大等代表參與。',
+    causal:{ level:'direct', relatedIds:['ge235Oversight2016'], explanation:'事故後民航局立即要求復興ATR駕駛員全面重新考驗並展開專案檢查，官方資料可直接連結。' },
+    sources:['s29','s62'] },
+
+  { id:'ge235Oversight2016', year:2015.6, yearLabel:'2015–2016', type:'governance', step:4,
+    title:'GE235後全面考驗與專案監理', shortTitle:'全面考驗／專案監理',
+    description:'民航局要求復興航空55名ATR72駕駛員接受提高標準的專業考驗；10人未通過口試、19人未應試，共29人先停飛一個月再複試。後續措施包括一次性特別檢查、改善FOQA與訓練，並自2016年起要求國籍航空公司按季提交FOQA資料供監理分析。',
+    importance:'是事故後立即、可量化的監理介入，也反向說明常態監理必須更早從飛航資料中識別能力與程序風險。',
+    causal:{ level:'direct', explanation:'55人全面考驗與專案措施由GE235事故直接啟動；GE222先前揭露的問題是制度背景。' },
+    sources:['s61','s62'] },
+
+  { id:'transportInvestigationAct2019', year:2019.31, yearLabel:'2019-04-24', type:'law', step:5,
+    title:'《飛航事故調查法》改為《運輸事故調查法》', shortTitle:'《運輸事故調查法》',
+    description:'法律全文修正為40條，調查範圍由航空擴至鐵道、水路與公路重大事故；並整合確認事故2小時、疑似事故24小時內通報，現場與證據保全、紀錄器處理、草案徵詢、報告公開，以及受建議機關90日內回覆、行政院列管追蹤等程序。',
+    importance:'把航空領域累積的獨立安全調查方法擴充為國家多運具制度，同時維持「預防再發、非為究責」的核心目的。',
+    causal:{ level:'longterm', explanation:'屬多運具調查政策與組織改造，官方資料未歸因於單一事故。' },
+    sources:['s2','s7'] },
+
+  { id:'ttsb2019', year:2019.58, yearLabel:'2019-08-01', type:'institution', step:5,
+    title:'國家運輸安全調查委員會正式運作', shortTitle:'運安會成立',
+    description:'配合新法，原飛航安全調查委員會於2019年8月1日改制為國家運輸安全調查委員會（TTSB），維持相當中央三級獨立機關地位；職掌擴及航空、鐵道、水路與公路重大事故，並包括趨勢分析、紀錄器解讀、技術研發與國際聯繫。',
+    importance:'核心改變是由單一航空調查擴為四種運具，而非2019年才取得獨立地位；獨立機關的法定基礎已於2012年建立。',
+    causal:{ level:'longterm', explanation:'是2019年修法與組織改造的施行結果，無單一事故直接因果。' },
+    sources:['s14','s52'] },
+
+  { id:'stats2025', year:2025.87, yearLabel:'統計截至2024年底；2025-11-12發布', type:'governance', step:6,
+    title:'調查績效與近十年飛安風險圖像', shortTitle:'調查績效／飛安趨勢',
+    description:'1998年至2024年底，官方統計完成144件重大飛航事故調查，提出1,106項改善建議；依對象分為政府機關52.8%、航空業者36.3%、國外機構10.9%，其中99.5%列為完成。《台灣飛安統計2015–2024》另顯示：國籍渦輪噴射民航運輸機十年間沒有機身全毀或致命事故；渦輪螺旋槳類則包含2015年GE235的43人死亡，自2016–2020移動窗起才降為零。若計入所有國籍航空器，十年間共有64件重大飛航事故、68人死亡，風險仍分布於渦槳機、直升機、普通航空、公務航空與超輕型載具。99.5%是行政執行狀態，不等同相同比例的實際風險已消除。',
+    importance:'以單一終點同時呈現制度產出與安全結果，也保留不同航空器類別仍有風險的必要限制。',
+    causal:{ level:'longterm', explanation:'這些是多年制度、機隊、設備、訓練與全球技術進步共同作用的結果，不能歸因於單一事故或單一制度。' },
+    sources:['s6','s63'] },
+];
+
+const EDGES = [
+  { from:'hualien1989', to:'asc1998', level:'background', step:1, explanation:'官方僅把本案列為專責機關成立前背景，無直接因果證據。' },
+  { from:'nagoya1995', to:'asc1998', level:'background', step:1, explanation:'本案是改革背景之一，但無資料證明直接促成1998年設置。' },
+  { from:'ci676', to:'asc1998', level:'background', step:1, explanation:'設置法源早於事故；CI676發生於籌設期，主要是加速與凸顯需求。' },
+  { from:'sq006', to:'lawAccidentInvestigation2004', level:'background', step:2, explanation:'事故提供實務經驗；官方立法理由未把專法直接歸因於本案。' },
+  { from:'ci611', to:'lawAccidentInvestigation2004', level:'background', step:2, explanation:'事故提供實務背景；官方立法理由未把專法直接歸因於本案。' },
+  { from:'ge222', to:'ge235Oversight2016', level:'background', step:4, explanation:'GE222先揭露SMS與監理問題，是後續強化監理的背景。' },
+  { from:'ge235', to:'ge235Oversight2016', level:'direct', step:4, explanation:'事故後立即實施55名ATR駕駛員全面考驗與專案措施。' },
+];
+
+const NODE_MAP = {};
+NODES.forEach(n => NODE_MAP[n.id] = n);
+
+const YEAR_MIN = 1988.3;
+const YEAR_MAX = 2026;
+</script>
+
+<script>
+/* ============================================================
+   TIMELINE DRAWING
+   ============================================================ */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function scaleX(year, viewW, padL, padR) {
+  const usable = viewW - padL - padR;
+  return padL + ((year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * usable;
+}
+function el(tag, attrs) {
+  const node = document.createElementNS(SVG_NS, tag);
+  if (attrs) for (const k in attrs) node.setAttribute(k, attrs[k]);
+  return node;
+}
+function drawShape(type, cx, cy, size) {
+  const s = size;
+  if (type === 'accident') return el('circle', { cx, cy, r: s * 0.5, class: 'shape' });
+  if (type === 'institution') return el('rect', { x: cx - s*0.45, y: cy - s*0.45, width: s*0.9, height: s*0.9, class:'shape' });
+  if (type === 'law') {
+    // 直接用四個頂點畫出菱形，不靠 SVG transform 屬性旋轉——
+    // 因為 .node-glow 的 CSS transform（scale 動畫）會整個覆蓋掉
+    // 元素自身的 transform 屬性，導致發光的菱形被拉回未旋轉的方形。
+    const r = s * 0.58;
+    const pts = [
+      cx.toFixed(1) + ',' + (cy - r).toFixed(1),
+      (cx + r).toFixed(1) + ',' + cy.toFixed(1),
+      cx.toFixed(1) + ',' + (cy + r).toFixed(1),
+      (cx - r).toFixed(1) + ',' + cy.toFixed(1),
+    ];
+    return el('polygon', { points: pts.join(' '), class:'shape' });
+  }
+  if (type === 'governance') {
+    const r = s * 0.55; const pts = [];
+    for (let i=0;i<6;i++){ const a = Math.PI/6 + i*Math.PI/3; pts.push((cx + r*Math.cos(a)).toFixed(1) + ',' + (cy + r*Math.sin(a)).toFixed(1)); }
+    return el('polygon', { points: pts.join(' '), class:'shape' });
+  }
+  const r = s * 0.62;
+  const pts = [
+    (cx).toFixed(1) + ',' + (cy - r).toFixed(1),
+    (cx - r*0.9).toFixed(1) + ',' + (cy + r*0.75).toFixed(1),
+    (cx + r*0.9).toFixed(1) + ',' + (cy + r*0.75).toFixed(1),
+  ];
+  return el('polygon', { points: pts.join(' '), class:'shape' });
+}
+
+function renderTimeline(svg, opts) {
+  const o = Object.assign({ revealStep: null, filterTypes: null, compact: false, interactive: true }, opts || {});
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const vb = svg.viewBox.baseVal;
+  const W = vb && vb.width ? vb.width : 900;
+  const H = vb && vb.height ? vb.height : 460;
+  const padL = o.compact ? 26 : 88;
+  const padR = o.compact ? 16 : 40;
+  const yAccident = o.compact ? H*0.24 : H*0.12;
+  const yInst = o.compact ? H*0.7 : H*0.30;
+  const yLaw = o.compact ? H*0.7 : H*0.47;
+  const yGov = o.compact ? H*0.7 : H*0.64;
+  const yIntl = o.compact ? H*0.7 : H*0.80;
+  const laneY = { accident:yAccident, institution:yInst, law:yLaw, governance:yGov, international:yIntl };
+  const laneRowKey = { accident:'accident', institution: o.compact?'other':'institution',
+    law: o.compact?'other':'law', governance: o.compact?'other':'governance',
+    international: o.compact?'other':'international' };
+  const nodeSize = o.compact ? 12 : 19;
+
+  const minGap = o.compact ? 20 : 106;
+  const rows = {};
+  NODES.forEach(n => { const key = laneRowKey[n.type]; (rows[key] = rows[key] || []).push(n); });
+  const nodeX = {};
+  Object.keys(rows).forEach(key => {
+    const arr = rows[key].slice().sort((a,b) => a.year - b.year).map(n => ({ id:n.id, x: scaleX(n.year, W, padL, padR) }));
+    for (let i = 1; i < arr.length; i++) { if (arr[i].x - arr[i-1].x < minGap) arr[i].x = arr[i-1].x + minGap; }
+    const overflow = arr.length ? arr[arr.length-1].x - (W - padR) : 0;
+    if (overflow > 0) arr.forEach(a => { a.x -= overflow; });
+    arr.forEach(a => { nodeX[a.id] = a.x; });
+  });
+
+  const axisY = H*0.90;
+  const axisG = el('g', { class:'tl-year-axis' });
+  axisG.appendChild(el('line', { x1:padL, x2:W-padR, y1:axisY, y2:axisY }));
+  if (!o.compact) {
+    for (let y = 1990; y <= 2025; y += 5) {
+      const x = scaleX(y, W, padL, padR);
+      const t = el('text', { x, y: axisY + 17, 'text-anchor':'middle' }); t.textContent = y; axisG.appendChild(t);
+      axisG.appendChild(el('line', { x1:x, x2:x, y1:axisY-4, y2:axisY+4 }));
+    }
+  }
+  svg.appendChild(axisG);
+
+  if (!o.compact) {
+    [[yAccident,'重大事故'],[yInst,'調查機構'],[yLaw,'法律規章'],[yGov,'治理制度'],[yIntl,'國際規範']].forEach(([y, text]) => {
+      const t = el('text', { x: 4, y: y + 4, class:'track-label' }); t.textContent = text; svg.appendChild(t);
+    });
+  }
+
+  function visible(item) {
+    if (o.filterTypes && item.type && !o.filterTypes.has(item.type)) return false;
+    if (o.revealStep !== null && item.step > o.revealStep) return false;
+    return true;
+  }
+
+  const edgeG = el('g', { class:'edges' });
+  EDGES.forEach(edge => {
+    const fromN = NODE_MAP[edge.from], toN = NODE_MAP[edge.to];
+    const showEdge = (o.filterTypes ? (o.filterTypes.has(fromN.type) && o.filterTypes.has(toN.type)) : true)
+      && (o.revealStep === null ? true : edge.step <= o.revealStep);
+    if (!showEdge) return;
+    const x1 = nodeX[fromN.id], y1 = laneY[fromN.type];
+    const x2 = nodeX[toN.id], y2 = laneY[toN.type];
+    const midY = (y1 + y2) / 2;
+    const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+    const meta = CAUSAL_META[edge.level];
+    const isCurrentEdge = o.revealStep !== null && edge.step === o.revealStep;
+    const path = el('path', {
+      d,
+      class: 'tl-edge ' + (meta.lineClass || '') + (isCurrentEdge ? ' is-current-step' : '')
+    });
+    if (!meta.lineClass) path.setAttribute('stroke', 'none');
+    edgeG.appendChild(path);
+  });
+  svg.appendChild(edgeG);
+
+  const nodeG = el('g', { class:'nodes' });
+  NODES.forEach(n => {
+    const show = visible(n);
+    const x = nodeX[n.id], y = laneY[n.type];
+    const g = el('g', {
+      class: 'tl-node type-' + n.type + (show ? '' : ' hidden-node'),
+      tabindex: (o.interactive && show) ? '0' : '-1',
+      role: 'button',
+      'aria-label': (TYPE_META[n.type].label) + '，' + n.yearLabel + '，' + n.title + '。按 Enter 或空白鍵查看詳細資料。',
+    });
+    if (!o.compact && show) {
+      const glow = drawShape(n.type, x, y, nodeSize * 0.85);
+      glow.setAttribute('class', 'node-glow');
+      g.appendChild(glow);
+    }
+    g.appendChild(drawShape(n.type, x, y, nodeSize));
+    if (!o.compact) {
+      const rawLabelX = x + (n.labelDx || 0);
+      const labelY = (n.type === 'accident' ? y - nodeSize - 6 : y + nodeSize + 14) + (n.labelDy || 0);
+      const nearLeftEdge = rawLabelX < 105;
+      const nearRightEdge = rawLabelX > W - 105;
+      const labelX = nearLeftEdge ? 12 : nearRightEdge ? W - 12 : rawLabelX;
+      const labelAnchor = nearLeftEdge ? 'start' : nearRightEdge ? 'end' : 'middle';
+      const label = el('text', { x:labelX, y:labelY, class: 'node-label', 'text-anchor':labelAnchor });
+      label.textContent = n.shortTitle;
+      g.appendChild(label);
+    }
+    if (o.interactive) {
+      g.addEventListener('click', () => openDetail(n.id));
+      g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(n.id); } });
+    }
+    nodeG.appendChild(g);
+  });
+  svg.appendChild(nodeG);
+}
+
+function buildLegend(container) {
+  container.innerHTML = '';
+  container.setAttribute('role', 'group');
+  container.setAttribute('aria-label', '圖例');
+
+  const shapeGrp = document.createElement('div'); shapeGrp.className = 'grp';
+  [['accident','重大事故'], ['institution','調查機構'], ['law','法律規章'], ['governance','治理制度'], ['international','國際規範']]
+    .forEach(([type,label]) => {
+      const item = document.createElement('span'); item.className='legend-item';
+      const svg = el('svg', { class: 'legend-shape-svg', viewBox: '0 0 20 20', width: '15', height: '15', 'aria-hidden': 'true' });
+      const g = el('g', { class: 'tl-node type-' + type });
+      g.appendChild(drawShape(type, 10, 10, 15));
+      svg.appendChild(g);
+      item.appendChild(svg);
+      const t = document.createElement('span'); t.textContent = label; item.appendChild(t);
+      shapeGrp.appendChild(item);
+    });
+  container.appendChild(shapeGrp);
+
+  const sep = document.createElement('span'); sep.className='sep'; container.appendChild(sep);
+
+  const lineGrp = document.createElement('div'); lineGrp.className = 'grp';
+  [['', '直接促成'], ['dashed', '間接形成改革背景']].forEach(([cls,label]) => {
+    const item = document.createElement('span'); item.className='legend-item';
+    const ln = document.createElement('span'); ln.className = 'legend-line ' + cls; item.appendChild(ln);
+    const t = document.createElement('span'); t.textContent = label; item.appendChild(t);
+    lineGrp.appendChild(item);
+  });
+  container.appendChild(lineGrp);
+}
+</script>
+
+<script>
+/* ============================================================
+   SCROLLYTELLING（依年份 STEP 逐步展開，無文字敘事，純圖表）
+   ============================================================ */
+const STEP_LABELS = ['起點','1998','2000–2004','2011–2012','2011–2016','2019','今日'];
+// 合併原本左側年份標記與右側目錄的文字內容，供 .reading-toc 使用
+const TOC_ITEMS = [
+  { year:'1998以前', desc:'尚無專責調查機關' },
+  { year:'1998',      desc:'CI676與專責飛安會起步' },
+  { year:'2000–2004', desc:'SQ006、CI611、GE791與調查法制化' },
+  { year:'2011–2012', desc:'調查機關組織法制化' },
+  { year:'2011–2016', desc:'SSP、Annex 19與系統風險' },
+  { year:'2019',      desc:'改制國家運輸安全調查' },
+  { year:'今日',      desc:'調查績效與飛安風險圖像' },
+];
+
+let currentStep = 0;
+
+function setTimelineStep(stepIdx) {
+  const lastStep = TOC_ITEMS.length - 1;
+  currentStep = Math.max(0, Math.min(lastStep, stepIdx));
+  const svg = document.getElementById('stageViz');
+  renderTimeline(svg, { revealStep: currentStep, interactive: true });
+  updateReadingToc(currentStep);
+}
+
+function initStages() {
+  const surface = document.getElementById('frameBox');
+  buildLegend(document.getElementById('legendMain'));
+  setTimelineStep(0);
+
+  let wheelLocked = false;
+  let wheelUnlockTimer = null;
+  function handleTimelineWheel(event) {
+    if (event.ctrlKey || Math.abs(event.deltaY) < 0.5) return;
+    if (document.querySelector('.detail-panel.is-open')) return;
+
+    const direction = event.deltaY > 0 ? 1 : -1;
+    const lastStep = TOC_ITEMS.length - 1;
+
+    if ((direction < 0 && currentStep === 0) ||
+        (direction > 0 && currentStep === lastStep)) {
+      return;
+    }
+
+    event.preventDefault();
+    if (wheelLocked) return;
+
+    setTimelineStep(currentStep + direction);
+    wheelLocked = true;
+    window.clearTimeout(wheelUnlockTimer);
+    wheelUnlockTimer = window.setTimeout(() => { wheelLocked = false; }, 260);
+  }
+
+  // 掛在視窗的擷取階段，確保游標位於 SVG、圖例或年份目錄上時都能收到滾輪事件。
+  window.addEventListener('wheel', handleTimelineWheel, { passive: false, capture: true });
+
+  let touchStartY = null;
+  surface.addEventListener('touchstart', event => {
+    if (event.touches.length === 1) touchStartY = event.touches[0].clientY;
+  }, { passive: true });
+  surface.addEventListener('touchend', event => {
+    if (touchStartY === null || !event.changedTouches.length) return;
+    const distance = touchStartY - event.changedTouches[0].clientY;
+    touchStartY = null;
+    if (Math.abs(distance) < 42) return;
+    setTimelineStep(currentStep + (distance > 0 ? 1 : -1));
+  }, { passive: true });
+
+  surface.addEventListener('keydown', event => {
+    if (event.key === 'ArrowDown' || event.key === 'PageDown') {
+      event.preventDefault();
+      setTimelineStep(currentStep + 1);
+    } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
+      event.preventDefault();
+      setTimelineStep(currentStep - 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setTimelineStep(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setTimelineStep(TOC_ITEMS.length - 1);
+    }
+  });
+
+  surface.addEventListener('pointerenter', () => {
+    surface.focus({ preventScroll: true });
+  });
+}
+</script>
+
+<script>
+/* ============================================================
+   READING TOC（合併版年份目錄，顯示閱讀進度）
+   正在閱讀的項目文字放大＋變色；其餘項目縮小、淡化。
+   ============================================================ */
+function initReadingToc() {
+  const list = document.getElementById('readingTocList');
+  TOC_ITEMS.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.className = 'reading-toc-item';
+    li.dataset.step = idx;
+    const btn = document.createElement('button');
+    btn.className = 'reading-toc-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '跳到 ' + item.year + '：' + item.desc);
+    const num = document.createElement('span'); num.className = 'num';
+    num.textContent = String(idx + 1).padStart(2, '0');
+    const wrap = document.createElement('span'); wrap.className = 'txt-wrap';
+    const yr = document.createElement('span'); yr.className = 'yr'; yr.textContent = item.year;
+    const desc = document.createElement('span'); desc.className = 'desc'; desc.textContent = item.desc;
+    wrap.appendChild(yr); wrap.appendChild(desc);
+    btn.appendChild(num); btn.appendChild(wrap);
+    btn.addEventListener('click', () => {
+      setTimelineStep(idx);
+    });
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+function updateReadingToc(stepIdx) {
+  const items = document.querySelectorAll('.reading-toc-item');
+  items.forEach(item => {
+    const s = Number(item.dataset.step);
+    const isPast = s < stepIdx;
+    item.classList.toggle('is-current', s === stepIdx);
+    item.classList.toggle('is-past', isPast);
+    const num = item.querySelector('.num');
+    if (num) num.textContent = isPast ? '✓' : String(s + 1).padStart(2, '0');
+  });
+}
+</script>
+
+<script>
+/* ============================================================
+   DETAIL PANEL
+   ============================================================ */
+let lastFocusedEl = null;
+
+function openDetail(nodeId) {
+  const n = NODE_MAP[nodeId];
+  if (!n) return;
+  lastFocusedEl = document.activeElement;
+
+  const meta = TYPE_META[n.type];
+  const tag = document.getElementById('detailTypeTag');
+  tag.textContent = meta.label; tag.style.background = meta.color;
+
+  document.getElementById('detailYear').textContent = n.yearLabel + (n.uncertain ? '（日期存在不確定性）' : '');
+  document.getElementById('detailTitle').textContent = n.title;
+  document.getElementById('detailDesc').textContent = n.description;
+
+  const sourcesList = document.getElementById('sourcesList');
+  sourcesList.innerHTML = '';
+  (n.sources || []).forEach(sid => {
+    const s = SOURCES[sid]; if (!s) return;
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = s.u; a.textContent = s.t; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    li.appendChild(a); sourcesList.appendChild(li);
+  });
+  sourcesList.setAttribute('hidden', '');
+  document.getElementById('sourcesToggle').setAttribute('aria-expanded', 'false');
+  document.getElementById('sourcesToggle').textContent = '資料來源 ▾';
+
+  const panel = document.getElementById('detailPanel');
+  const overlay = document.getElementById('detailOverlay');
+  panel.classList.add('is-open'); overlay.classList.add('is-open');
+  panel.setAttribute('aria-hidden', 'false');
+  document.getElementById('detailClose').focus();
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  const panel = document.getElementById('detailPanel');
+  const overlay = document.getElementById('detailOverlay');
+  panel.classList.remove('is-open'); overlay.classList.remove('is-open');
+  panel.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus();
+}
+
+function initDetailPanel() {
+  document.getElementById('detailClose').addEventListener('click', closeDetail);
+  document.getElementById('detailOverlay').addEventListener('click', closeDetail);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('detailPanel').classList.contains('is-open')) closeDetail();
+  });
+  const sourcesToggle = document.getElementById('sourcesToggle');
+  sourcesToggle.addEventListener('click', () => {
+    const list = document.getElementById('sourcesList');
+    const hidden = list.hasAttribute('hidden');
+    if (hidden) {
+      list.removeAttribute('hidden');
+      sourcesToggle.setAttribute('aria-expanded', 'true');
+      sourcesToggle.textContent = '資料來源 ▴';
+    } else {
+      list.setAttribute('hidden', '');
+      sourcesToggle.setAttribute('aria-expanded', 'false');
+      sourcesToggle.textContent = '資料來源 ▾';
+    }
+  });
+}
+</script>
+
+<script>
+/* ============================================================
+   ACCESSIBILITY & INIT
+   ============================================================ */
+// 標題列已移除；保留函式以確保手機版 sticky 圖表從畫面頂端開始。
+function syncHeaderHeight() {
+  const header = document.querySelector('.frame-header');
+  document.documentElement.style.setProperty('--header-h', (header ? header.offsetHeight : 0) + 'px');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initReadingToc();
+  initStages();
+  initDetailPanel();
+  updateReadingToc(0);
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+});
+</script>
+
+</body>
+</html>
