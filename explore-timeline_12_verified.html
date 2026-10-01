@@ -532,6 +532,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; }
 }
 
 </style>
+<style>
+@media(max-width:600px){
+  .frame-header{padding:8px 10px 0}
+  .frame-header h1{font-size:18px}
+  .frame-header .kicker{font-size:9px;margin-bottom:4px}
+  .frame-body{grid-template-rows:auto minmax(0,1fr);gap:6px}
+  .reading-toc{display:block;max-width:none;max-height:none}
+  .reading-toc-list{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .reading-toc-btn{min-height:26px;padding:3px 1px}
+  .reading-toc-btn .yr,.reading-toc-item.is-current .yr{font-size:9px}
+  .scroll-hint{display:none!important}
+}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#frameBox">跳到時間軸</a>
@@ -1044,13 +1057,25 @@ function setTimelineStep(stepIdx) {
 function initStages() {
   const surface = document.getElementById('frameBox');
   buildLegend(document.getElementById('legendMain'));
-  setTimelineStep(0);
+  setTimelineStep(window.parent !== window ? TOC_ITEMS.length - 1 : 0);
+  if (window.parent !== window) {
+    surface.setAttribute('aria-label','飛安事件時間軸；點擊年份切換時間點，滾輪繼續閱讀文章');
+    document.getElementById('scrollHint').textContent = '點擊年份切換時間點';
+    document.getElementById('stageViz').setAttribute('aria-label','事故與制度雙軌時間軸；點擊年份切換時間點，點擊圖示查看詳細資料');
+  }
 
   let wheelLocked = false;
   let wheelUnlockTimer = null;
   function handleTimelineWheel(event) {
     if (event.ctrlKey || Math.abs(event.deltaY) < 0.5) return;
     if (document.querySelector('.detail-panel.is-open')) return;
+    if (window.parent !== window) {
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
+      window.parent.postMessage({type:'marvel:timeline-scroll',deltaY:delta},'*');
+      return;
+    }
+
 
     const direction = event.deltaY > 0 ? 1 : -1;
     const lastStep = TOC_ITEMS.length - 1;
@@ -1076,7 +1101,17 @@ function initStages() {
   surface.addEventListener('touchstart', event => {
     if (event.touches.length === 1) touchStartY = event.touches[0].clientY;
   }, { passive: true });
+
+  surface.addEventListener('touchmove', event => {
+    if (window.parent === window || touchStartY === null || event.touches.length !== 1 || document.querySelector('.detail-panel.is-open')) return;
+    const nextY = event.touches[0].clientY;
+    const delta = touchStartY - nextY;
+    touchStartY = nextY;
+    if (event.cancelable) event.preventDefault();
+    window.parent.postMessage({type:'marvel:timeline-scroll',deltaY:delta},'*');
+  }, {passive:false});
   surface.addEventListener('touchend', event => {
+    if (window.parent !== window) {touchStartY = null; return;}
     if (touchStartY === null || !event.changedTouches.length) return;
     const distance = touchStartY - event.changedTouches[0].clientY;
     touchStartY = null;
@@ -1101,7 +1136,7 @@ function initStages() {
   });
 
   surface.addEventListener('pointerenter', () => {
-    surface.focus({ preventScroll: true });
+    if (window.parent === window) surface.focus({ preventScroll: true });
   });
 }
 </script>
@@ -1235,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initReadingToc();
   initStages();
   initDetailPanel();
-  updateReadingToc(0);
+  updateReadingToc(currentStep);
   syncHeaderHeight();
   window.addEventListener('resize', syncHeaderHeight);
 });
