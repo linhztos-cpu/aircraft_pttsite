@@ -1044,7 +1044,7 @@ const TOC_ITEMS = [
   { year:'今日',      desc:'調查績效與飛安風險圖像' },
 ];
 
-let currentStep = 0;
+let currentStep = 1;
 
 function setTimelineStep(stepIdx) {
   const lastStep = TOC_ITEMS.length - 1;
@@ -1057,7 +1057,7 @@ function setTimelineStep(stepIdx) {
 function initStages() {
   const surface = document.getElementById('frameBox');
   buildLegend(document.getElementById('legendMain'));
-  setTimelineStep(window.parent !== window ? TOC_ITEMS.length - 1 : 0);
+  setTimelineStep(TOC_ITEMS.findIndex(item => item.year === '1998'));
   if (window.parent !== window) {
     surface.setAttribute('aria-label','飛安事件時間軸；點擊年份切換時間點，滾輪繼續閱讀文章');
     document.getElementById('scrollHint').textContent = '點擊年份切換時間點';
@@ -1271,5 +1271,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+window.addEventListener('keydown', event => {
+  if (window.parent === window || !['ArrowLeft','ArrowRight'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
+  if (event.target?.closest?.('input,textarea,select,[contenteditable=true]') || document.querySelector('.detail-panel.is-open')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.parent.postMessage({type:'marvel:article-arrow',key:event.key},'*');
+}, {capture:true});
+</script>
 </body>
 </html>

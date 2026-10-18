@@ -604,5 +604,14 @@
             window.addEventListener('resize', () => map.invalidateSize());
         }
     </script>
+<script>
+window.addEventListener('keydown', event => {
+  if (window.parent === window || !['ArrowLeft','ArrowRight'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
+  if (event.target?.closest?.('input,textarea,select,[contenteditable=true]') || document.querySelector('.detail-panel.is-open')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.parent.postMessage({type:'marvel:article-arrow',key:event.key},'*');
+}, {capture:true});
+</script>
 </body>
 </html>  
