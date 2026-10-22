@@ -545,7 +545,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; }
   .scroll-hint{display:none!important}
 }
 </style>
-</head>
+<style>
+@media(max-width:760px){.frame-header h1{font-size:16px}.reading-toc-list{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.reading-toc-btn{min-height:36px}.reading-toc-btn .yr,.reading-toc-item.is-current .yr{font-size:12px}.frame-body{padding:5px;gap:4px}.stage-sticky{padding:4px}.legend{font-size:10px;padding:4px}.detail-panel{max-width:100vw;width:100vw;max-height:100dvh;overflow-y:auto}.scroll-hint{display:none!important}}
+</style></head>
 <body>
 <a class="skip-link" href="#frameBox">跳到時間軸</a>
 
@@ -1093,26 +1095,23 @@ function initStages() {
   window.addEventListener('wheel', handleTimelineWheel, { passive: false, capture: true });
 
   let touchStartY = null;
+  let touchStartX = null;
   surface.addEventListener('touchstart', event => {
-    if (event.touches.length === 1) touchStartY = event.touches[0].clientY;
-  }, { passive: true });
-
+    if(event.touches.length !== 1 || document.querySelector('.detail-panel.is-open')) {touchStartY=null;return;}
+    touchStartY=event.touches[0].clientY;touchStartX=event.touches[0].clientX;
+  }, {passive:true});
   surface.addEventListener('touchmove', event => {
-    if (window.parent === window || touchStartY === null || event.touches.length !== 1 || document.querySelector('.detail-panel.is-open')) return;
-    const nextY = event.touches[0].clientY;
-    const delta = touchStartY - nextY;
-    touchStartY = nextY;
-    if (event.cancelable) event.preventDefault();
-    window.parent.postMessage({type:'marvel:timeline-scroll',deltaY:delta},'*');
+    if(touchStartY===null || event.touches.length!==1) return;
+    if(Math.abs(event.touches[0].clientY-touchStartY)>10 && event.cancelable)event.preventDefault();
   }, {passive:false});
   surface.addEventListener('touchend', event => {
-    if (window.parent !== window) {touchStartY = null; return;}
-    if (touchStartY === null || !event.changedTouches.length) return;
-    const distance = touchStartY - event.changedTouches[0].clientY;
-    touchStartY = null;
-    if (Math.abs(distance) < 42) return;
-    setTimelineStep(currentStep + (distance > 0 ? 1 : -1));
-  }, { passive: true });
+    if(touchStartY===null || !event.changedTouches.length)return;
+    const dy=touchStartY-event.changedTouches[0].clientY;
+    const dx=touchStartX-event.changedTouches[0].clientX;touchStartY=null;
+    if(Math.abs(dy)<42 || Math.abs(dx)>Math.abs(dy))return;
+    setTimelineStep(Math.max(0,Math.min(TOC_ITEMS.length-1,currentStep+(dy>0?1:-1))));
+  },{passive:true});
+  surface.addEventListener('touchcancel',()=>{touchStartY=null;},{passive:true});
 
   surface.addEventListener('keydown', event => {
     if (event.key === 'ArrowDown' || event.key === 'PageDown') {
