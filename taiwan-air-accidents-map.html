@@ -361,15 +361,58 @@
             .map-hint { top: auto; bottom: 10px; }
         }
     </style>
-</head>
+<style id="bbs-terminal-style">
+:root{--bbs-font:ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,Consolas,"Noto Sans Mono CJK TC","Noto Sans Mono","MingLiU","PMingLiU",monospace;--bbs-blue:#000080;--bbs-ink:#ddd;--bbs-cyan:#70d6e5;--bbs-yellow:#ffff37}
+*{box-shadow:none!important;border-radius:0!important;text-shadow:none!important}
+html,body{background:#000;color:#ddd;font-family:var(--bbs-font);font-size:15px;line-height:1.55}
+button,input,a,svg,text{font-family:inherit}
+button{cursor:pointer;min-height:44px;border:1px solid #777;background:#000080;color:#fff;font-size:14px;padding:6px 10px}
+button:hover{background:#ccc;color:#000080}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid #ffff37;outline-offset:-2px}
+button:disabled{opacity:.45;cursor:default}
+a{color:#70d6e5;overflow-wrap:anywhere}a:hover{color:#ffff37}
+.bbs-info{flex:none;background:#000080;color:#eee;border-bottom:1px solid #999;padding:8px 12px;font-size:14px;line-height:1.6}
+.bbs-info h1{font-size:18px;margin:0;color:#fff;font-weight:700;letter-spacing:0}
+.bbs-info .bbs-field{color:#ccc;display:inline-block;min-width:4em}
+.bbs-info .bbs-sub{font-size:12px;color:#ddd}
+.bbs-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 10px;background:#000080;color:#eee;border-top:1px solid #777;font-size:12px;flex:none}
+.bbs-position{color:#ffff37;margin-right:auto;line-height:1.5}
+.bbs-list-heading{margin:0;padding:7px 8px;background:#000080;color:#fff;font-size:14px;font-weight:400}
+@media(max-width:600px){html,body{font-size:14px}.bbs-info{padding:6px 8px}.bbs-info h1{font-size:16px}.bbs-info .bbs-sub{font-size:11px}.bbs-toolbar{padding:4px 6px}.bbs-toolbar button{font-size:12px;padding:4px 7px}}
+
+body{height:100dvh;background:#000;overflow:hidden}body *{font-family:var(--bbs-font)}
+header.bbs-info{height:auto;min-height:76px;flex:none;display:block;border-bottom:1px solid #888;padding:7px 12px;background:#000080}
+.main-container{display:grid;grid-template-columns:235px minmax(0,1fr) 320px;flex:1 1 auto;height:auto;min-height:0;overflow:hidden}
+.main-container[data-panel="closed"]{grid-template-columns:235px minmax(0,1fr)}
+#map{min-width:0;width:100%;height:100%;background:#111}.leaflet-tile-pane{filter:grayscale(1) brightness(.65) contrast(1.2)}
+.leaflet-container{font-family:var(--bbs-font);background:#111}.leaflet-control-attribution{background:#000!important;color:#ccc!important;font-size:10px}.leaflet-control-attribution a{color:#70d6e5}
+.leaflet-bar a{background:#000080;color:#fff;border-color:#777;min-width:44px;min-height:44px;line-height:44px}.leaflet-bar a:hover{background:#ccc;color:#000080}
+.bbs-map-index{min-width:0;min-height:0;overflow:auto;border-right:1px solid #777;background:#000}
+.map-event-list{list-style:none;margin:0;padding:0}.map-event-list button{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 6px;width:100%;min-height:64px;padding:8px;text-align:left;border:0;border-bottom:1px solid #555;background:#000;color:#ddd}
+.map-event-list .event-date{font-size:12px;color:#ffff37;grid-column:2}.map-event-list .event-name{grid-column:2;font-size:14px}.event-cursor{grid-column:1;grid-row:1/3;color:#70d6e5}.map-event-list button:hover{background:#000080;color:#fff}.map-event-list button[aria-pressed="true"]{background:#ccc;color:#000080}.map-event-list button[aria-pressed="true"] span{color:#000080}
+#info-panel{width:auto;height:100%;min-width:0;padding:10px;background:#000;border-left:1px solid #777;color:#ddd;overflow:auto;transition:none;transform:none;position:relative}
+#info-panel.collapsed{display:none;transform:none;position:static}
+.toggle-btn{position:static;width:auto;height:auto;min-height:44px;padding:6px 10px;align-self:flex-start;background:#000080;color:#fff;border:1px solid #777;margin-bottom:12px}
+#open-panel-btn{right:8px;top:8px;border:1px solid #777;background:#000080;color:#fff;min-height:44px;padding:8px;font-size:13px}
+.disaster-title{color:#fff;font-size:20px;line-height:1.5;padding:8px 0;border-bottom:1px solid #777;margin-bottom:12px}
+.bbs-event-fields{display:grid;grid-template-columns:5em minmax(0,1fr);gap:8px;margin:0 0 16px;font-size:14px}.bbs-event-fields dt{color:#aaa}.bbs-event-fields dd{margin:0;overflow-wrap:anywhere;color:#ddd}.bbs-event-fields dd:first-of-type{color:#ffff37}
+.disaster-desc{color:#ddd;font-size:15px;line-height:1.8;border-top:1px solid #555;padding-top:10px}.bbs-source-note{font-size:12px;color:#aaa;border-top:1px solid #555;margin-top:16px;padding-top:8px}
+.default-msg{color:#ccc;font-size:15px;line-height:1.7;margin:auto 0}.default-msg .icon{display:none}
+.map-hint{display:none}.pulse-ring{display:none!important}.pulse-dot{animation:none!important;position:static!important;width:24px!important;height:24px!important;background:#000080!important;border:1px solid #ddd!important;color:#fff;text-align:center;font-size:12px;line-height:22px;transform:none!important}
+.pulsing-icon.is-selected .pulse-dot{background:#ffff37!important;color:#000!important;border:2px solid #fff!important}.leaflet-tooltip{background:#000080;color:#fff;border:1px solid #aaa;font-family:var(--bbs-font)}
+.leaflet-marker-icon:focus-visible{outline:2px solid #ffff37;outline-offset:3px}.leaflet-marker-icon:hover .pulse-dot{background:#ccc!important;color:#000080}
+@media(max-width:700px){
+ header.bbs-info{min-height:68px;padding:5px 8px}.main-container,.main-container[data-panel="closed"]{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(100px,28%) minmax(0,1fr)}
+ #map{grid-row:1;grid-column:1}.bbs-map-index{grid-row:2;grid-column:1;border-right:0;border-top:1px solid #777}
+ #info-panel{grid-row:2;grid-column:1;border-left:0;border-top:1px solid #777;position:relative;inset:auto;max-height:none;width:100%;height:100%;padding:8px}
+ .main-container[data-panel="open"] .bbs-map-index{display:none}.map-event-list button{grid-template-columns:22px 90px minmax(0,1fr);min-height:48px}.map-event-list .event-date{grid-column:2;align-self:center}.map-event-list .event-name{grid-column:3;align-self:center}.event-cursor{grid-row:1}
+ .disaster-title{font-size:18px}.bbs-toolbar{max-height:110px;overflow:auto}
+}
+</style></head>
 <body>
 
-    <header>
-        <h1>臺灣空難地圖</h1>
-        <div class="subtitle">TAIWAN CIVIL AVIATION ACCIDENTS MAP</div>
-    </header>
-
-    <div class="main-container">
+<header class="bbs-info"><div><span class="bbs-field">作者</span>aircrafter</div><h1><span class="bbs-field">標題</span>台灣歷史上重大空難事件</h1><div class="bbs-sub"><span class="bbs-field">範圍</span><span id="mapRange"></span> ／ 日期・事件・地點・傷亡</div></header>
+    <div class="main-container" data-panel="open"><nav class="bbs-map-index" aria-label="空難事件索引"><h2 class="bbs-list-heading">日期 ／ 航班與事件</h2><ol id="mapEventList" class="map-event-list"></ol></nav>
         <div
             id="map"
             role="application"
@@ -379,20 +422,20 @@
         <div class="map-hint">拖曳移動 · 滾輪縮放 · 點擊紅點查看事件</div>
 
         <!-- 面板關閉時顯示的開啟按鈕 -->
-        <button id="open-panel-btn" onclick="togglePanel(true)">📋 查看事件資訊</button>
+        <button id="open-panel-btn" onclick="togglePanel(true)">查看事件資訊</button>
 
         <!-- 側邊資訊欄 -->
         <div id="info-panel">
-            <button class="toggle-btn" onclick="togglePanel(false)" title="關閉資訊欄">✕</button>
+            <button class="toggle-btn" onclick="togglePanel(false)" title="返回事件列表">返回事件列表</button>
             <div id="panel-content" style="height: 100%; display: flex; flex-direction: column;">
                 <div class="default-msg">
-                    <span class="icon">📍</span>
-                    點擊地圖上的紅點<br>查看詳細事件紀錄與傷亡數據
+                    請從事件列表或地圖編號選取事件。<br>可查看日期、地點、傷亡與事件紀錄。
                 </div>
             </div>
         </div>
     </div>
 
+<footer class="bbs-toolbar"><span class="bbs-position" id="mapPosition" role="status" aria-live="polite">目前位置 > 事件索引</span><button id="mapReturnList" onclick="togglePanel(false); document.querySelector('#mapEventList button')?.focus()">返回事件列表</button><span>點選列表或編號查看；拖曳／滾輪縮放；地圖方向鍵移動</span></footer>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -503,61 +546,30 @@
             }
         ];
 
-        // 4. 動態雷達標記 Icon（精確指定中心錨點 [10, 10]）
-        const pulseIcon = L.divIcon({
-            className: 'pulsing-icon',
-            html: `<div class="pulse-ring"></div><div class="pulse-dot"></div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-        });
-
-        let hasSelectedEvent = false;
-        let panelAutoCollapsed = false;
-
-        // 5. 繪製標記與互動事件
-        disasters.forEach(item => {
-            const marker = L.marker([item.lat, item.lng], {
-                icon: pulseIcon,
-                keyboard: true,
-                title: item.name,
-                alt: `${item.name}，按 Enter 查看詳細資訊`,
-                riseOnHover: true,
-                bubblingMouseEvents: false
-            }).addTo(map);
-
-            marker.bindTooltip(item.name, {
-                permanent: false,
-                direction: 'top',
-                offset: [0, -8],
-                opacity: 0.95
-            });
-
-            marker.on('click', () => {
-                hasSelectedEvent = true;
-                togglePanel(true);
-
-                const panelContent = document.getElementById('panel-content');
-                panelContent.innerHTML = `
-                    <div class="disaster-title">${item.name}</div>
-                    <div class="meta-group">
-                        <span class="tag">📅 事發日期：${item.date}</span>
-                        <span class="tag">📍 失事地點：${item.location}</span>
-                    </div>
-                    <div class="casualty-box">
-                        <div class="casualty-title">傷亡統計</div>
-                        <div class="casualty-num">${item.casualty}</div>
-                    </div>
-                    <div class="disaster-desc">${item.desc}</div>
-                `;
-                window.setTimeout(() => {
-                    map.invalidateSize({ animate: true });
-                    map.flyTo(
-                        [item.lat, item.lng],
-                        Math.max(map.getZoom(), 10),
-                        { animate: true, duration: 0.8 }
-                    );
-                }, 380);
-            });
+        // Shared selection path for map markers, keyboard and event-list buttons.
+        let hasSelectedEvent = false, panelAutoCollapsed = false, selectedEventIndex = -1;
+        const markers = [], eventButtons = [];
+        document.getElementById('mapRange').textContent = disasters[0].date + '–' + disasters.at(-1).date;
+        function showEvent(index) {
+            const item = disasters[index]; if(!item)return;
+            hasSelectedEvent = true; selectedEventIndex = index; togglePanel(true);
+            const content=document.getElementById('panel-content');
+            content.innerHTML = `<h2 class="disaster-title" tabindex="-1">${item.name}</h2><dl class="bbs-event-fields"><dt>事發日期</dt><dd>${item.date}</dd><dt>事件名稱</dt><dd>${item.name}</dd><dt>失事地點</dt><dd>${item.location}</dd><dt>傷亡統計</dt><dd>${item.casualty}</dd></dl><p class="disaster-desc">${item.desc}</p><p class="bbs-source-note">來源說明：原始事件資料未附逐筆來源連結。地圖圖資來源見地圖右下角標示。</p>`;
+            eventButtons.forEach((b,i)=>{b.setAttribute('aria-pressed',String(i===index));b.querySelector('.event-cursor').textContent=i===index?'>':String(i+1).padStart(2,'0')});
+            markers.forEach((marker,i)=>{const icon=marker.getElement();icon?.classList.toggle('is-selected',i===index);icon?.setAttribute('aria-label',(i===index?'目前選取，':'')+disasters[i].name+'，'+disasters[i].date+'，按 Enter 查看')});
+            document.getElementById('mapPosition').textContent='目前位置 > '+item.date+'｜'+item.name;
+            content.parentElement.scrollTop=0;
+            content.querySelector('.disaster-title').focus({preventScroll:true});
+            window.setTimeout(()=>{map.invalidateSize({animate:false});map.flyTo([item.lat,item.lng],Math.max(map.getZoom(),10),{animate:!window.matchMedia('(prefers-reduced-motion: reduce)').matches,duration:.8})},50);
+        }
+        disasters.forEach((item,index)=>{
+            const icon=L.divIcon({className:'pulsing-icon',html:`<div class="pulse-dot">${index+1}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
+            const marker=L.marker([item.lat,item.lng],{icon,keyboard:true,title:item.name,alt:`${item.name}，按 Enter 查看詳細資訊`,riseOnHover:true,bubblingMouseEvents:false}).addTo(map);
+            marker.bindTooltip(item.name,{permanent:false,direction:'top',offset:[0,-8],opacity:1});
+            marker.on('click',()=>showEvent(index));markers.push(marker);
+            const li=document.createElement('li'),button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed','false');
+            button.innerHTML=`<span class="event-cursor">${String(index+1).padStart(2,'0')}</span><span class="event-date">${item.date}</span><span class="event-name">${item.name}</span>`;
+            button.addEventListener('click',()=>showEvent(index));eventButtons.push(button);li.appendChild(button);document.getElementById('mapEventList').appendChild(li);
         });
 
         // 6. 控制資訊欄關閉/開啟
@@ -565,6 +577,12 @@
             const panel = document.getElementById('info-panel');
             const openBtn = document.getElementById('open-panel-btn');
 
+            document.querySelector('.main-container').dataset.panel=show?'open':'closed';
+            document.getElementById('info-panel').setAttribute('aria-hidden',String(!show));
+            if (!show && selectedEventIndex >= 0) {
+                document.getElementById('mapPosition').textContent='目前位置 > 事件索引（已選：'+disasters[selectedEventIndex].name+'）';
+                eventButtons[selectedEventIndex]?.focus({preventScroll:true});
+            }
             if (show) {
                 panel.classList.remove('collapsed');
                 openBtn.style.display = 'none';
@@ -607,6 +625,7 @@
 <script>
 window.addEventListener('keydown', event => {
   if (window.parent === window || !['ArrowLeft','ArrowRight'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
+  if (event.target?.closest?.('#map')) return;
   if (event.target?.closest?.('input,textarea,select,[contenteditable=true]') || document.querySelector('.detail-panel.is-open')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
